@@ -125,5 +125,26 @@ public class ChamadoController {
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/setor")
+    public List<Chamado> buscarPorSetor(@RequestParam() String nome) {
+        return chamados.stream()
+            .filter(c -> c.setor().equalsIgnoreCase(nome))
+            .toList();
+    }
+
+    @GetMapping("/prioridade")
+    public List<Chamado> buscarPorPrioridade(@RequestParam() String nivel){
+        Prioridade prioridade;
+
+        try {
+            prioridade = Prioridade.valueOf(nivel.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return List.of();
+        }
+
+        return chamados.stream()
+            .filter(c -> c.prioridade() == prioridade)
+            .toList();
+    }
 
 }
