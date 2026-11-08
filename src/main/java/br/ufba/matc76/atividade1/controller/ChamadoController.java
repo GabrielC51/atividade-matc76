@@ -76,7 +76,7 @@ public class ChamadoController {
             new Chamado(
                 7L,
                 "Troca de toner da impressora do RH",
-                "Henrique/ Lopes",
+                "Henrique Lopes",
                 "RH",
                 Prioridade.BAIXA,
                 Status.ABERTO
@@ -144,6 +144,21 @@ public class ChamadoController {
 
         return chamados.stream()
             .filter(c -> c.prioridade() == prioridade)
+            .toList();
+    }
+
+    @GetMapping("/busca")
+    public List<Chamado> buscarPorTitulo(@RequestParam String texto) {
+        String termo = texto.toLowerCase();
+        return chamados.stream()
+            .filter(c -> c.titulo().toLowerCase().contains(termo))
+            .toList();
+    }
+
+    @GetMapping("/criticos")
+    public List<Chamado> listarCriticos() {
+        return chamados.stream()
+            .filter(c -> c.prioridade() == Prioridade.ALTA && c.status() != Status.RESOLVIDO)
             .toList();
     }
 
