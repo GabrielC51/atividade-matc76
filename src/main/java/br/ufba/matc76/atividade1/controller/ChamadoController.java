@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import java.net.URI;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity; 
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/chamados")
@@ -112,8 +113,31 @@ public class ChamadoController {
     public List<Chamado> listarChamados(){
         return this.chamados;
     }
-    
-    @GetMapping("/{id}")
+
+    @GetMapping("/resumo")
+    public ResponseEntity<Map<String, Long>> resumo() {
+        long abertos = chamados.stream()
+                .filter(c -> c.status() == Status.ABERTO)
+                .count();
+
+        long emAndamento = chamados.stream()
+                .filter(c -> c.status() == Status.EM_ANDAMENTO)
+                .count();
+
+        long resolvidos = chamados.stream()
+                .filter(c -> c.status() == Status.RESOLVIDO)
+                .count();
+
+        Map<String, Long> resumo = new LinkedHashMap<>();
+        resumo.put("abertos", abertos);
+        resumo.put("emAndamento", emAndamento);
+        resumo.put("resolvidos", resolvidos);
+        resumo.put("total", (long) chamados.size());
+
+        return ResponseEntity.ok(resumo);
+    }
+
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<Chamado> chamadoPorId(@PathVariable long id){
         return chamados.stream()
             .filter(
@@ -121,7 +145,7 @@ public class ChamadoController {
                 chamado.id() == id
             )
             .findFirst()
-            .map(chamado -> ResponseEntity.ok(chamado))
+            .map(ResponseEntity::ok)
             .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -160,6 +184,29 @@ public class ChamadoController {
         return chamados.stream()
             .filter(c -> c.prioridade() == Prioridade.ALTA && c.status() != Status.RESOLVIDO)
             .toList();
+    }
+
+    @PostMapping
+    public ResponseEntity<Chamado> cadastrar(@RequestBody Chamado novo) {
+        long proximoId = chamados.stream()
+                .mapToLong(Chamado::id)
+                .max()
+                .orElse(0L) + 1L;
+
+        Chamado criado = new Chamado(
+                proximoId,
+                novo.titulo(),
+                novo.solicitante(),
+                novo.setor(),
+                novo.prioridade(),
+                novo.status() != null ? novo.status() : Status.ABERTO
+        );
+
+        chamados.add(criado);
+
+        return ResponseEntity
+                .created(URI.create("/chamados/" + proximoId))
+                .body(criado);
     }
 
 }
